@@ -2,9 +2,10 @@ package com.wimbli.WorldBorder;
 
 import java.text.DecimalFormat;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class Config
 	private static int borderTask = -1;
 	public static WorldFillTask fillTask;
 	public static WorldTrimTask trimTask;
-	public static Set<String> movedPlayers = Collections.synchronizedSet(new HashSet<String>());
+	private static Set<String> bypassPlayers = Collections.synchronizedSet(new LinkedHashSet<String>());
 	private static Runtime rt = Runtime.getRuntime();
 	
 	// actual configuration values which can be changed
@@ -215,7 +216,31 @@ public class Config
 		return dynmapMessage;
 	}
 
+	public static void setPlayerBypass(String player, boolean bypass)
+	{
+		if (bypass)
+			bypassPlayers.add(player.toLowerCase());
+		else
+			bypassPlayers.remove(player.toLowerCase());
+	}
 
+	public static boolean isPlayerBypassing(String player)
+	{
+		return bypassPlayers.contains(player.toLowerCase());
+	}
+
+	public static void togglePlayerBypass(String player)
+	{
+		setPlayerBypass(player, !isPlayerBypassing(player));
+	}
+
+
+
+	public static boolean isBorderTimerRunning()
+	{
+		if (borderTask == -1) return false;
+		return (plugin.getServer().getScheduler().isQueued(borderTask) || plugin.getServer().getScheduler().isCurrentlyRunning(borderTask));
+	}
 
 	public static void StartBorderTimer()
 	{
@@ -281,15 +306,19 @@ public class Config
 
 	public static boolean HasPermission(Player player, String request)
 	{
+		return HasPermission(player, request, true);
+	}
+	public static boolean HasPermission(Player player, String request, boolean notify)
+	{
 		if (player == null)				// console, always permitted
-			return true;
-		else if (player.isOp())			// Op, always permitted
 			return true;
 
 		if (player.hasPermission("worldborder." + request))	// built-in Bukkit superperms
 			return true;
 
-		player.sendMessage("You do not have sufficient permissions.");
+		if (notify)
+			player.sendMessage("You do not have sufficient permissions.");
+
 		return false;
 	}
 

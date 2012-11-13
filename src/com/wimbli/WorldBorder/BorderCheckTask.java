@@ -10,6 +10,7 @@ import org.bukkit.Server;
 import org.bukkit.util.Vector;
 import org.bukkit.World;
 
+
 public class BorderCheckTask implements Runnable
 {
 	private transient Server server = null;
@@ -22,6 +23,10 @@ public class BorderCheckTask implements Runnable
 	public void run()
 	{
 		if (server == null)
+			return;
+
+		// if knockback is set to 0, simply return
+		if (Config.KnockBack() == 0.0)
 			return;
 
 		Player[] players = server.getOnlinePlayers();
@@ -47,6 +52,10 @@ public class BorderCheckTask implements Runnable
 		if (border.insideBorder(loc.getX(), loc.getZ(), Config.ShapeRound()))
 			return null;
 
+		// if player is in bypass list (from bypass command), allow them beyond border
+		if (Config.isPlayerBypassing(player.getName()))
+			return null;
+
 		Location newLoc = newLocation(player, loc, border);
 
 		if (Config.whooshEffect())
@@ -69,7 +78,7 @@ public class BorderCheckTask implements Runnable
 			Entity ride = player.getVehicle();
 			if (ride != null && !(ride instanceof LivingEntity))
 			{	// vehicles need to be offset vertically and have velocity stopped
-				double vertOffset = ride.getLocation().getY() - loc.getY();
+				double vertOffset = (ride instanceof LivingEntity) ? 0 : ride.getLocation().getY() - loc.getY();
 				newLoc.setY(newLoc.getY() + vertOffset);
 				ride.setVelocity(new Vector(0, 0, 0));
 				ride.teleport(newLoc);
